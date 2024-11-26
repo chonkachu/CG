@@ -1,0 +1,38 @@
+# Blender 3.6.18 MTL File: 'None'
+# www.blender.org
+
+newmtl Black.Street.Lighting.1
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Black.Street.Lighting.1_BaseColor.png
+map_Ns /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Black.Street.Lighting.1_Roughness.png
+map_refl /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Black.Street.Lighting.1_Metallic.png
+map_Bump /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Black.Street.Lighting.1_Normal.png
+
+newmtl Grey.Street.Lighting.1
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Grey.Street.Lighting.1_BaseColor.png
+map_Ns /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Grey.Street.Lighting.1_Roughness.png
+map_refl /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Grey.Street.Lighting.1_Metallic.png
+map_Bump /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_Grey.Street.Lighting.1_Normal.png
+
+newmtl White.Street.Lighting.1
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_White.Street.Lighting.1_BaseColor.png
+map_Ns /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_White.Street.Lighting.1_Roughness.png
+map_refl /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_White.Street.Lighting.1_Metallic.png
+map_Bump /home/b0r0s/Downloads/uploads_files_2971904_Texture/D:/Blender/CGTrade Projects/Streetlights/Texture/Street.Lighting.1/2k/Street.Lighting.1_White.Street.Lighting.1_Normal.png

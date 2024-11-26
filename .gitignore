@@ -1,0 +1,6 @@
+main
+*.o
+Codigo base/*
+exemplo_projeto2/*
+sky-sphere-test/*
+.venv/*
