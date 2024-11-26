@@ -80,7 +80,7 @@ void Camera::ProcessKeyboard(GLFWwindow* window) {
         if (checkSkyBounds(position, delta) && checkFloorBounds(position, delta))
             position += delta;
     }
-//std::cout << position.x << " " << position.y << " " << position.z << " " << std::endl;
+std::cout << position.x << " " << position.y << " " << position.z << " " << std::endl;
 }
 
 void Camera::UpdateCameraVectors() {

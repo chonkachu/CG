@@ -42,6 +42,10 @@ const char* fragmentShaderSource = R"(
         float constant;
         float linear;
         float quadratic;
+
+        float cutOff;
+        float outerCutOff;
+        vec3 direction;
     }; 
 
     struct DirLight {
@@ -64,9 +68,28 @@ const char* fragmentShaderSource = R"(
         vec3 specular;
     };
 
+    struct SpotLight {
+        vec3 position;
+        vec3 direction;
+        vec3 color;
+        
+        float cutOff;
+        float outerCutOff;
+
+        float constant;
+        float linear;
+        float quadratic;
+    
+        vec3 ambient;
+        vec3 diffuse;
+        vec3 specular;
+    };
+
     #define MAX_LIGHTS 10
     uniform int numLights;
+    uniform int numSpotLights;
     uniform PointLight pointLights[MAX_LIGHTS];
+    uniform SpotLight spotLights[MAX_LIGHTS];
     uniform DirLight dirLight;
 
     in vec3 FragPos;
@@ -79,10 +102,10 @@ const char* fragmentShaderSource = R"(
     // Function prototypes
     vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
     vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+    vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
     void main()
     {
-        // Handle light-emitting materials
         if (material.isLightSource) {
             vec3 texColor = vec3(texture(material.diffuse, TexCoords));
             FragColor = vec4(texColor * material.emission, 1.0);
@@ -92,12 +115,14 @@ const char* fragmentShaderSource = R"(
         vec3 norm = normalize(Normal);
         vec3 viewDir = normalize(viewPos - FragPos);
 
-        // Phase 1: Directional light
         vec3 result = CalcDirLight(dirLight, norm, viewDir);
 
-        // Phase 2: Point lights
         for(int i = 0; i < numLights; i++) {
             result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+        }
+
+        for(int i = 0; i < numSpotLights; i++) {
+            result += CalcSpotLight(spotLights[i], norm, FragPos, viewDir);
         }
         
         FragColor = vec4(result, 1.0);
@@ -151,11 +176,46 @@ const char* fragmentShaderSource = R"(
         vec3 colored = (ambient + diffuse + specular) * light.color;
         return colored * attenuation;
     }
-
+    vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
+        vec3 lightDir = normalize(light.position - fragPos);
+    
+        // Diffuse shading
+        float diff = max(dot(normal, lightDir), 0.0);
+    
+        // Specular shading
+        vec3 reflectDir = reflect(-lightDir, normal);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    
+        // Attenuation
+        float distance = length(light.position - fragPos);
+        float attenuation = 1.0 / (light.constant + light.linear * distance + 
+                light.quadratic * (distance * distance));
+    
+        // Spotlight (soft edges)
+        float theta = dot(lightDir, normalize(-light.direction));
+        float epsilon = light.cutOff - light.outerCutOff;
+        float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+    
+        // Combine results
+        vec3 texColor = vec3(texture(material.diffuse, TexCoords));
+        vec3 ambient = light.ambient * texColor;
+        vec3 diffuse = light.diffuse * diff * texColor;
+        vec3 specular = light.specular * spec * texColor;
+    
+        ambient *= attenuation * intensity;
+        diffuse *= attenuation * intensity;
+        specular *= attenuation * intensity;
+    
+        return (ambient + diffuse + specular) * light.color;
+    }
 )";
 
 bool polygonal_mode = false;
 bool showDebugLines = false;
+bool foundEye = false;
+glm::vec3 eyeLeft(0.75865, 8.79846, 1.0f);
+glm::vec3 eyeCentroid(0.03f, 8.79846, 1.0f);
+glm::vec3 eyeDirection(0.0f);
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_P && action == GLFW_PRESS) {
@@ -172,7 +232,7 @@ public:
         // Create a simple line geometry
         float vertices[] = {
             0.0f, 0.0f, 0.0f,    // Start point
-            0.0f, -10.0f, 0.0f   // End point (scaled direction)
+            0.0f, 0.0f, 0.0f     // End point will be calculated in Draw
         };
 
         glGenVertexArrays(1, &vao);
@@ -180,19 +240,30 @@ public:
         
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW); // Changed to DYNAMIC_DRAW
         
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     }
 
-
     void Draw(const glm::mat4& view, const glm::mat4& projection, 
               const glm::vec3& lightPos, const glm::vec3& direction,
               GLuint shaderProgram) {
-        // Create model matrix to position the line
+        // Update the vertices with the actual direction
+        float vertices[] = {
+            lightPos.x, lightPos.y, lightPos.z,                    // Start point
+            lightPos.x + direction.x * 5.0f,                      // End point = start + direction * length
+            lightPos.y + direction.y * 5.0f, 
+            lightPos.z + direction.z * 5.0f
+        };
+        std::cout << vertices[0] << " " << vertices[1] << " " << vertices[2] << std::endl;
+        std::cout << vertices[3] << " " << vertices[4] << " " << vertices[5] << std::endl;
+        
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        
+        // Create model matrix (identity since we're using absolute positions now)
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
         
         // Send matrices to shader
         GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -277,7 +348,25 @@ private:
         glm::vec3 specular;
     };
 
+    struct SpotLight {
+        glm::vec3 position;
+        glm::vec3 direction;
+        glm::vec3 color;
+        
+        float cutOff;
+        float outerCutOff;
+
+        float constant;
+        float linear;
+        float quadratic;
+    
+        glm::vec3 ambient;
+        glm::vec3 diffuse;
+        glm::vec3 specular;
+    };
+
     std::vector<PointLight> pointLights;
+    std::vector<SpotLight> spotLights;
 
     void InitializeGLFW() {
         if (!glfwInit()) {
@@ -446,29 +535,29 @@ private:
             "textures/stone.png"
         };
         std::vector<MaterialProperties> giantProperties = {
-            MaterialProperties(  // Grey parts
-                    glm::vec3(0.0f),     // No emission
-                    1.0f,               // Less shiny
-                    false                // Not a light source
+            MaterialProperties(  // Eyes - Green spotlight
+                    glm::vec3(0.0f, 1.0f, 0.0f) * 2.0f,  // Bright green emission
+                    1.0f,                                 // Shininess
+                    true,                                 // Is light source
+                    1.0f,                                 // Constant
+                    0.09f,                                // Linear
+                    0.022f,                               // Quadratic
+                    glm::cos(glm::radians(25.f)),       // Inner cone angle
+                    glm::cos(glm::radians(30.f)),       // Outer cone angle
+                    glm::vec3(0.0f, 1.0f, 1.0f)          // Direction (facing forward)
                     ),
-            MaterialProperties(  // Grey parts
-                    glm::vec3(0.0f),     // No emission
-                    1.0f,               // Less shiny
-                    false                // Not a light source
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.0f), 1.0f, false
                     ),
-            MaterialProperties(  // Grey parts
-                    glm::vec3(0.0f),     // No emission
-                    1.0f,               // Less shiny
-                    false                // Not a light source
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.0f), 1.0f, false
                     ),
-            MaterialProperties(  // Grey parts
-                    glm::vec3(0.0f),     // No emission
-                    1.0f,               // Less shiny
-                    false                // Not a light source
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.0f), 1.0f, false
                     )
         };
         objects.push_back(new Object(shaderProgram, "models/giant.obj", giantTextures,
-                    giantProperties, 90.0f, 0.0f, 0.0f, 1.0f, 1));
+                    giantProperties, 0.0f, 0.0f, 0.0f, 1.0f, 1));
     }
     void SetupLighting() {
         // Set up directional light
@@ -496,23 +585,55 @@ private:
         glUniform3fv(lightSpecularLoc, 1, glm::value_ptr(dirLight.specular));
         // Setup point lights
         pointLights.clear();
+        spotLights.clear();
 
         // Collect light data from objects
         for (const auto& obj : objects) {
             for (size_t i = 0; i < obj->materials.size(); i++) {
                 const auto& mat = obj->materials[i];
                 if (mat.isLightSource) {
-                    PointLight light;
-                    glm::mat4 model = obj->GetModelMatrix();
-                    light.position = glm::vec3(model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-                    light.color = mat.emission;
-                    light.constant = mat.constant;
-                    light.linear = mat.linear;
-                    light.quadratic = mat.quadratic;
-                    light.ambient = glm::vec3(0.05f);
-                    light.diffuse = glm::vec3(0.8f);
-                    light.specular = glm::vec3(1.0f);
-                    pointLights.push_back(light);
+                    if (mat.cutOff > -0.9f) {  // If cutOff is set (not default -1), it's a spotlight
+                        SpotLight light;
+                        glm::mat4 model = obj->GetModelMatrix();
+                        if (obj->name == "models/giant.obj") {
+                            glm::vec3 eyeCentroidNew = glm::vec3(model * glm::vec4(eyeCentroid, 1.0f));
+                            glm::vec3 eyeLeftNew = glm::vec3(model * glm::vec4(eyeLeft, 1.0f));
+                            light.position = eyeCentroidNew; 
+
+                            glm::vec3 leftVector = eyeLeftNew-eyeCentroidNew;
+                            glm::vec3 upVector(0.0f, 1.0f, 0.0f);
+                            eyeDirection = glm::normalize(glm::cross(leftVector, upVector));
+                            light.direction = eyeDirection;
+                        }
+                        else {
+                            light.position = glm::vec3(model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                            light.direction = glm::vec3(model * glm::vec4(mat.direction, 0.0f));
+                            std::cout << "entrei aqui " << obj->name << '\n';
+                        }
+                        light.color = mat.emission;
+                        light.cutOff = mat.cutOff;
+                        light.outerCutOff = mat.outerCutOff;
+                        light.constant = mat.constant;
+                        light.linear = mat.linear;
+                        light.quadratic = mat.quadratic;
+                        light.ambient = glm::vec3(0.05f);
+                        light.diffuse = glm::vec3(0.8f);
+                        light.specular = glm::vec3(1.0f);
+                        spotLights.push_back(light);
+                    } 
+                    else {
+                        PointLight light;
+                        glm::mat4 model = obj->GetModelMatrix();
+                        light.position = glm::vec3(model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                        light.color = mat.emission;
+                        light.constant = mat.constant;
+                        light.linear = mat.linear;
+                        light.quadratic = mat.quadratic;
+                        light.ambient = glm::vec3(0.05f);
+                        light.diffuse = glm::vec3(0.8f);
+                        light.specular = glm::vec3(1.0f);
+                        pointLights.push_back(light);
+                    }
                 }
             }
         }
@@ -520,6 +641,9 @@ private:
         // Send point light data
         glUniform1i(glGetUniformLocation(shaderProgram, "numLights"), 
                 static_cast<GLint>(pointLights.size()));
+        glUniform1i(glGetUniformLocation(shaderProgram, "numSpotLights"), 
+                static_cast<GLint>(spotLights.size()));
+        
 
         for (size_t i = 0; i < pointLights.size(); i++) {
             std::string base = "pointLights[" + std::to_string(i) + "].";
@@ -543,7 +667,36 @@ private:
             glUniform3fv(glGetUniformLocation(shaderProgram, (base + "specular").c_str()),
                     1, glm::value_ptr(pointLights[i].specular));
         }
-    }
+        for (size_t i = 0; i < spotLights.size(); i++) {
+            std::string base = "spotLights[" + std::to_string(i) + "].";
+
+            glUniform3fv(glGetUniformLocation(shaderProgram, (base + "position").c_str()),
+                    1, glm::value_ptr(spotLights[i].position));
+            glUniform3fv(glGetUniformLocation(shaderProgram, (base + "direction").c_str()),
+                    1, glm::value_ptr(spotLights[i].direction));
+            glUniform3fv(glGetUniformLocation(shaderProgram, (base + "color").c_str()),
+                    1, glm::value_ptr(spotLights[i].color));
+
+            glUniform1f(glGetUniformLocation(shaderProgram, (base + "cutOff").c_str()),
+                    spotLights[i].cutOff);
+            glUniform1f(glGetUniformLocation(shaderProgram, (base + "outerCutOff").c_str()),
+                    spotLights[i].outerCutOff);
+
+            glUniform1f(glGetUniformLocation(shaderProgram, (base + "constant").c_str()),
+                    spotLights[i].constant);
+            glUniform1f(glGetUniformLocation(shaderProgram, (base + "linear").c_str()),
+                    spotLights[i].linear);
+            glUniform1f(glGetUniformLocation(shaderProgram, (base + "quadratic").c_str()),
+                    spotLights[i].quadratic);
+
+            glUniform3fv(glGetUniformLocation(shaderProgram, (base + "ambient").c_str()),
+                    1, glm::value_ptr(spotLights[i].ambient));
+            glUniform3fv(glGetUniformLocation(shaderProgram, (base + "diffuse").c_str()),
+                    1, glm::value_ptr(spotLights[i].diffuse));
+            glUniform3fv(glGetUniformLocation(shaderProgram, (base + "specular").c_str()),
+                    1, glm::value_ptr(spotLights[i].specular));
+        }
+}
 
     void RenderFrame() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -567,6 +720,10 @@ private:
         for (auto obj : objects) {
             if (obj->name == "models/sphere.obj")
                 obj->Rotate(0.003f);
+
+            if (showDebugLines && obj->name == "models/giant.obj") {
+                lightVisualizer->Draw(view, projection, eyeCentroid, eyeDirection, shaderProgram);
+            }
             obj->Draw(polygonal_mode);
         }
         if (showDebugLines) {

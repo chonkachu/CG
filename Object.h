@@ -15,6 +15,7 @@ struct Vertex {
 };
 
 
+// In Object.h
 struct MaterialProperties {
     glm::vec3 emission{0.0f};
     float shininess{32.0f};
@@ -22,6 +23,9 @@ struct MaterialProperties {
     float constant{1.0f};
     float linear{0.09f};
     float quadratic{0.032f};
+    float cutOff{-1.0f};         // Default to -1 for point lights
+    float outerCutOff{-1.0f};    // Default to -1 for point lights
+    glm::vec3 direction{0.0f, 0.0f, -1.0f};
 
     MaterialProperties(
         glm::vec3 _emission = glm::vec3(0.0f),
@@ -29,13 +33,19 @@ struct MaterialProperties {
         bool _isLightSource = false,
         float _constant = 1.0f,
         float _linear = 0.09f,
-        float _quadratic = 0.032f
+        float _quadratic = 0.032f,
+        float _cutOff = -1.0f,
+        float _outerCutOff = -1.0f,
+        glm::vec3 _direction = glm::vec3(0.0f, 0.0f, -1.0f)
     ) : emission(_emission),
         shininess(_shininess),
         isLightSource(_isLightSource),
         constant(_constant),
         linear(_linear),
-        quadratic(_quadratic)
+        quadratic(_quadratic),
+        cutOff(_cutOff),
+        outerCutOff(_outerCutOff),
+        direction(_direction)
     {}
 };
 

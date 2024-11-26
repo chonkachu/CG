@@ -192,6 +192,9 @@ void Object::Draw(bool mesh_active) {
         GLint constantLoc = glGetUniformLocation(shaderProgram, "material.constant");
         GLint linearLoc = glGetUniformLocation(shaderProgram, "material.linear");
         GLint quadraticLoc = glGetUniformLocation(shaderProgram, "material.quadratic");
+        GLint cutOffLoc = glGetUniformLocation(shaderProgram, "material.cutOff");
+        GLint outerCutOffLoc = glGetUniformLocation(shaderProgram, "material.outerCutOff");
+        GLint directionLoc = glGetUniformLocation(shaderProgram, "material.direction");
 
         const auto& mat = materials[i];
         glUniform3fv(emissionLoc, 1, glm::value_ptr(mat.emission));
@@ -200,6 +203,9 @@ void Object::Draw(bool mesh_active) {
         glUniform1f(constantLoc, mat.constant);
         glUniform1f(linearLoc, mat.linear);
         glUniform1f(quadraticLoc, mat.quadratic);
+        glUniform1f(cutOffLoc, mat.cutOff);
+        glUniform1f(outerCutOffLoc, mat.outerCutOff);
+        glUniform3fv(directionLoc, 1, glm::value_ptr(mat.direction));
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[i]);
