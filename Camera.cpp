@@ -98,6 +98,9 @@ glm::mat4 Camera::GetViewMatrix() const {
 glm::mat4 Camera::GetProjectionMatrix() const {
     return glm::perspective(glm::radians(45.0f), width / height, 0.1f, 1000.0f);
 }
+glm::vec3 Camera::GetPosition() const {
+    return position;
+}
 
 void Camera::MouseCallback(GLFWwindow* window, double xpos, double ypos) {
     if (instance) {

@@ -10,13 +10,24 @@
 
 Object::Object(GLuint shaderProgram, const char* objPath, 
                const std::vector<const char*>& texturePaths,
+               const std::vector<MaterialProperties>& matProperties,
                float _xPos, float _yPos, float _zPos, float _scale, int axis)
     : shaderProgram(shaderProgram), xPos(_xPos), yPos(_yPos), zPos(_zPos),
-      scale(_scale), angle(0.0f), axis(axis) {
+      scale(_scale), angle(0.0f), axis(axis), name(objPath), materials(matProperties) {
     
     if (!LoadOBJ(objPath)) {
         throw std::runtime_error("Failed to load OBJ file!");
     }
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(xPos, yPos, zPos));
+    
+    glm::vec3 rotation_axis(0.0f, 1.0f, 0.0f);
+    if (axis == 0) rotation_axis = glm::vec3(1.0f, 0.0f, 0.0f);
+    if (axis == 2) rotation_axis = glm::vec3(0.0f, 0.0f, 1.0f);
+    
+    model = glm::rotate(model, angle, rotation_axis);
+    model = glm::scale(model, glm::vec3(scale));
 
     // Generate and bind VAO
     glGenVertexArrays(1, &vao);
@@ -28,14 +39,17 @@ Object::Object(GLuint shaderProgram, const char* objPath,
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
     // Set up vertex attributes
-    GLint loc_vertices = glGetAttribLocation(shaderProgram, "position");
-    glEnableVertexAttribArray(loc_vertices);
-    glVertexAttribPointer(loc_vertices, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 
-    GLint loc_texture_coord = glGetAttribLocation(shaderProgram, "texture_coord");
-    glEnableVertexAttribArray(loc_texture_coord);
-    glVertexAttribPointer(loc_texture_coord, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 
-                         (void*)offsetof(Vertex, texture_coord));
+    // Texture coordinate attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture_coord));
+
+    // Normal attribute
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
 
     // Load textures
     textures.resize(texturePaths.size());
@@ -44,16 +58,14 @@ Object::Object(GLuint shaderProgram, const char* objPath,
             throw std::runtime_error("Failed to load texture: " + std::string(texturePaths[i]));
         }
     }
-    name = objPath;
 }
 
 bool Object::LoadOBJ(const char* path) {
     std::vector<glm::vec3> temp_vertices;
     std::vector<glm::vec2> temp_texcoords;
+    std::vector<glm::vec3> temp_normals;
     std::string current_material;
     size_t vertex_count = 0;
-
-    std::cout << "chamado por: " << path << std::endl;
 
     std::ifstream file(path);
     if (!file) {
@@ -77,6 +89,11 @@ bool Object::LoadOBJ(const char* path) {
             iss >> tex.x >> tex.y;
             temp_texcoords.push_back(tex);
         }
+        else if (type == "vn") {
+            glm::vec3 normal;
+            iss >> normal.x >> normal.y >> normal.z;
+            temp_normals.push_back(normal);
+        }
         else if (type == "usemtl") {
             if (!current_material.empty()) {
                 materialGroups.back().second.second = vertex_count - materialGroups.back().second.first;
@@ -96,19 +113,13 @@ bool Object::LoadOBJ(const char* path) {
                 std::vector<int> indices;
                 
                 while (std::getline(ss, index_str, '/')) {
-                    if (!index_str.empty()) {
-                        indices.push_back(std::stoi(index_str));
-                    }
-                    else {
-                        indices.push_back(0);
-                    }
+                    indices.push_back(!index_str.empty() ? std::stoi(index_str) : 0);
                 }
 
                 Vertex vertex;
                 vertex.position = temp_vertices[indices[0] - 1];
-                if (indices.size() > 1 && indices[1] > 0) {
-                    vertex.texture_coord = temp_texcoords[indices[1] - 1];
-                }
+                vertex.texture_coord = indices[1] > 0 ? temp_texcoords[indices[1] - 1] : glm::vec2(0.0f);
+                vertex.normal = indices[2] > 0 ? temp_normals[indices[2] - 1] : glm::vec3(0.0f, 1.0f, 0.0f);
                 vertices.push_back(vertex);
                 vertex_count++;
             };
@@ -159,7 +170,7 @@ bool Object::LoadTexture(const char* path, GLuint& texture) {
 void Object::Draw(bool mesh_active) {
     glUseProgram(shaderProgram);
 
-    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(xPos, yPos, zPos));
     
     glm::vec3 rotation_axis(0.0f, 1.0f, 0.0f);
@@ -175,9 +186,25 @@ void Object::Draw(bool mesh_active) {
     glBindVertexArray(vao);
 
     for (size_t i = 0; i < materialGroups.size(); i++) {
+        GLint emissionLoc = glGetUniformLocation(shaderProgram, "material.emission");
+        GLint shininessLoc = glGetUniformLocation(shaderProgram, "material.shininess");
+        GLint isLightSourceLoc = glGetUniformLocation(shaderProgram, "material.isLightSource");
+        GLint constantLoc = glGetUniformLocation(shaderProgram, "material.constant");
+        GLint linearLoc = glGetUniformLocation(shaderProgram, "material.linear");
+        GLint quadraticLoc = glGetUniformLocation(shaderProgram, "material.quadratic");
+
+        const auto& mat = materials[i];
+        glUniform3fv(emissionLoc, 1, glm::value_ptr(mat.emission));
+        glUniform1f(shininessLoc, mat.shininess);
+        glUniform1i(isLightSourceLoc, mat.isLightSource);
+        glUniform1f(constantLoc, mat.constant);
+        glUniform1f(linearLoc, mat.linear);
+        glUniform1f(quadraticLoc, mat.quadratic);
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[i]);
-        GLint loc_texture = glGetUniformLocation(shaderProgram, "samplerTexture");
+
+        GLint loc_texture = glGetUniformLocation(shaderProgram, "material.diffuse");
         glUniform1i(loc_texture, 0);
 
         const auto& group = materialGroups[i];
@@ -196,6 +223,10 @@ void Object::Scale(float factor) {
 
 void Object::Rotate(float angle_delta) {
     angle += angle_delta;
+}
+
+glm::mat4 Object::GetModelMatrix() {
+    return model;
 }
 
 Object::~Object() {

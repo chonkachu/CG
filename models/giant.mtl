@@ -1,0 +1,23 @@
+# Blender 3.6.18 MTL File: 'None'
+# www.blender.org
+
+newmtl EYES
+Ns 324.000031
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd /home/b0r0s/Downloads/watercolor-paper-texture_1194-5296.jpg
+
+newmtl STONE
+Ka 1.000000 1.000000 1.000000
+Ks 0.259091 0.259091 0.259091
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/b0r0s/study/cg/textures/stone.png
+map_Ns /home/b0r0s/Downloads/uploads_files_2309722_obj_blend_fbx(+textures)/rough.tif
+map_Bump /home/b0r0s/Downloads/uploads_files_2309722_obj_blend_fbx(+textures)/normal.png

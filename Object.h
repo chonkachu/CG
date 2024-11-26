@@ -11,13 +11,43 @@
 struct Vertex {
     glm::vec3 position;
     glm::vec2 texture_coord;
+    glm::vec3 normal;
+};
+
+
+struct MaterialProperties {
+    glm::vec3 emission{0.0f};
+    float shininess{32.0f};
+    bool isLightSource{false};
+    float constant{1.0f};
+    float linear{0.09f};
+    float quadratic{0.032f};
+
+    MaterialProperties(
+        glm::vec3 _emission = glm::vec3(0.0f),
+        float _shininess = 32.0f,
+        bool _isLightSource = false,
+        float _constant = 1.0f,
+        float _linear = 0.09f,
+        float _quadratic = 0.032f
+    ) : emission(_emission),
+        shininess(_shininess),
+        isLightSource(_isLightSource),
+        constant(_constant),
+        linear(_linear),
+        quadratic(_quadratic)
+    {}
 };
 
 class Object {
 public:
     std::string name;
+    std::vector<MaterialProperties> materials;
+    glm::mat4 model;
+
     Object(GLuint shaderProgram, const char* objPath, 
            const std::vector<const char*>& texturePaths,
+           const std::vector<MaterialProperties>& matProperties,
            float _xPos = 0.0f, float _yPos = 0.0f, float _zPos = 0.0f, 
            float _scale = 1.0f, int axis = 1);
     ~Object();
@@ -26,7 +56,7 @@ public:
     void Move(float dx, float dy);
     void Scale(float factor);
     void Rotate(float angle);
-
+    glm::mat4 GetModelMatrix();
 private:
     GLuint vao{0}, vbo{0};
     GLuint shaderProgram;

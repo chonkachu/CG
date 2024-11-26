@@ -16,6 +16,7 @@ public:
     
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
+    glm::vec3 GetPosition() const;
     
     static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
     static Camera* GetInstance() { return instance; }
