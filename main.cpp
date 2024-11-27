@@ -12,7 +12,6 @@ std::string loadShaderFromFile(const char* filePath) {
     std::string shaderCode;
     std::ifstream shaderFile;
 
-
     shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
     try {
@@ -20,12 +19,9 @@ std::string loadShaderFromFile(const char* filePath) {
         shaderFile.open(filePath);
         std::stringstream shaderStream;
 
-
         shaderStream << shaderFile.rdbuf();
 
-
         shaderFile.close();
-
 
         shaderCode = shaderStream.str();
     }
@@ -90,7 +86,6 @@ class Renderer {
                         std::cout << "Selected object " << index << " " << objects[selectedObjectIndex]->name << std::endl;
                     }
                 }
-
                 if (key == GLFW_KEY_P) {
                     polygonal_mode = !polygonal_mode;
                 }
@@ -107,12 +102,30 @@ class Renderer {
                     dirLight.ambient = glm::clamp(dirLight.ambient, glm::vec3(0.0f), glm::vec3(1.0f));
                 }
 
+                if (key == GLFW_KEY_B) {  
+                    dirLight.diffuse += glm::vec3(0.1f);
+                    dirLight.diffuse = glm::clamp(dirLight.diffuse, glm::vec3(0.0f), glm::vec3(1.0f));
+                }
+                if (key == GLFW_KEY_N) {  
+                    dirLight.diffuse -= glm::vec3(0.1f);
+                    dirLight.diffuse = glm::clamp(dirLight.diffuse, glm::vec3(0.0f), glm::vec3(1.0f));
+                }
+
+                if (key == GLFW_KEY_M) {  
+                    dirLight.specular += glm::vec3(0.1f);
+                    dirLight.specular = glm::clamp(dirLight.specular, glm::vec3(0.0f), glm::vec3(1.0f));
+                }
+                if (key == GLFW_KEY_COMMA) {  
+                    dirLight.specular -= glm::vec3(0.1f);
+                    dirLight.specular = glm::clamp(dirLight.specular, glm::vec3(0.0f), glm::vec3(1.0f));
+                }
+
                 if (selectedObjectIndex >= 0 && selectedObjectIndex < objects.size()) {
                     Object* selectedObj = objects[selectedObjectIndex];
                     if (key == GLFW_KEY_Z) {
                         selectedObj->Rotate(rotationSpeed);
                     }
-                    if (key == GLFW_KEY_C) {
+                    if (key == GLFW_KEY_X) {
                         selectedObj->Rotate(-rotationSpeed);
                     }
                     if (key == GLFW_KEY_RIGHT) {
@@ -133,10 +146,10 @@ class Renderer {
                     if (key == GLFW_KEY_K) {
                         selectedObj->Move(0.0f, translationSpeed, 0.0f);
                     }
-                    if (key == GLFW_KEY_V) {
+                    if (key == GLFW_KEY_C) {
                         selectedObj->Scale(0.1);
                     }
-                    if (key == GLFW_KEY_B) {
+                    if (key == GLFW_KEY_V) {
                         selectedObj->Scale(-0.1);
                     }
 
@@ -157,25 +170,6 @@ class Renderer {
                             }
                         }
                     }
-
-
-                    if (key == GLFW_KEY_E) {  
-                        for (auto &mat : selectedObj->materials) {
-                            if (!mat.isLightSource) {
-                                mat.diffuseReflection += glm::vec3(0.1f);
-                                mat.diffuseReflection = glm::clamp(mat.diffuseReflection, glm::vec3(0.0f), glm::vec3(1.0f));
-                            }
-                        }
-                    }
-                    if (key == GLFW_KEY_R) {  
-                        for (auto &mat : selectedObj->materials) {
-                            if (!mat.isLightSource) {
-                                mat.diffuseReflection -= glm::vec3(0.1f);
-                                mat.diffuseReflection = glm::clamp(mat.diffuseReflection, glm::vec3(0.0f), glm::vec3(1.0f));
-                            }
-                        }
-                    }
-
                     if (key == GLFW_KEY_T) {  
                         for (auto &mat : selectedObj->materials) {
                             if (!mat.isLightSource) {
@@ -397,7 +391,7 @@ class Renderer {
                         ),
                 MaterialProperties(
                         glm::vec3(0.0f),        
-                        glm::vec3(0.6f),        
+                        glm::vec3(0.8f),        
                         glm::vec3(0.2f),        
                         16.0f,                  
                         false                   
@@ -624,20 +618,20 @@ class Renderer {
                         lampProperties, 70.0f, 0.0f, -10.0f, 5.0f, 0.0f, 1));
             objects.push_back(new Object(shaderProgram, "models/lamp.obj", lampTextures,
                         lampProperties, 70.0f, 0.0f, 10.0f, 5.0f, 0.0f, 1));
-            objects.push_back(new Object(shaderProgram, "models/bed.obj", bedTextures,
-                        bedProperties, -6.0f, 0.3f, -18.0f, 2.0f, 0.0f, 1));
-            objects.push_back(new Object(shaderProgram, "models/sphere.obj", skyTextures,
-                        skyProperties, 0.0f, 0.0f, 0.0f, 200.0f, 0.0f, 1));
-            objects.push_back(new Object(shaderProgram, "models/tree.obj", treeTextures,
-                        treeProperties, 63.0f, 0.0f, -18.0f, 0.3f, 0.0f, 1));
-            objects.push_back(new Object(shaderProgram, "models/grass.obj", grassTextures,
-                        grassProperties, 0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 1));
             objects.push_back(new Object(shaderProgram, "models/casa.obj", houseTextures,
                         houseProperties, 2.0f, 0.5f, -1.0f, 5.0f, 0.0f, 1));
-            objects.push_back(new Object(shaderProgram, "models/thinker.obj", thinkerTextures,
-                        thinkerProperties, 4.5f, 0.6f, -21.0f, 0.7f, 9.4f, 1));
+            objects.push_back(new Object(shaderProgram, "models/bed.obj", bedTextures,
+                        bedProperties, -6.0f, 0.3f, -18.0f, 2.0f, 0.0f, 1));
             objects.push_back(new Object(shaderProgram, "models/victory.obj", victoryTextures,
                         victoryProperties, 13.0f, -0.75f, 14.0f, 0.5f, 3.7f, 1));
+            objects.push_back(new Object(shaderProgram, "models/thinker.obj", thinkerTextures,
+                        thinkerProperties, 4.5f, 0.6f, -21.0f, 0.7f, 9.4f, 1));
+            objects.push_back(new Object(shaderProgram, "models/tree.obj", treeTextures,
+                        treeProperties, 63.0f, 0.0f, -18.0f, 0.3f, 0.0f, 1));
+            objects.push_back(new Object(shaderProgram, "models/sphere.obj", skyTextures,
+                        skyProperties, 0.0f, 0.0f, 0.0f, 200.0f, 0.0f, 1));
+            objects.push_back(new Object(shaderProgram, "models/grass.obj", grassTextures,
+                        grassProperties, 0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 1));
             objects.push_back(new Object(shaderProgram, "models/nightstand.obj", nightstandTextures,
                         nightstandProperties, -10.5f, 1.5f, 13.5f, 0.4f, 0.0f, 1));
         }
@@ -665,7 +659,8 @@ class Renderer {
                 for (size_t i = 0; i < obj->materials.size(); i++) {
                     const auto& mat = obj->materials[i];
                     if (mat.isLightSource && mat.isActive) {
-                        if (mat.cutOff > -0.9f) {  
+                        // modelos que não tem uma spotlight tem cutOff = -1 por padrão
+                        if (mat.cutOff > -0.9f) { 
                             SpotLight light;
                             glm::mat4 model = obj->GetModelMatrix();
                             // Define direção do raio de luz da lanterna e do gigante
