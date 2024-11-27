@@ -32,8 +32,8 @@ struct MaterialProperties {
 
     MaterialProperties(
         glm::vec3 _emission = glm::vec3(0.0f),
-        glm::vec3 diffuseReflection = glm::vec3(1.0f),
-        glm::vec3 specularReflection = glm::vec3(1.0f),
+        glm::vec3 _diffuseReflection = glm::vec3(1.0f),
+        glm::vec3 _specularReflection = glm::vec3(1.0f),
         float _shininess = 32.0f,
         bool _isLightSource = false,
         float _constant = 1.0f,
@@ -43,6 +43,8 @@ struct MaterialProperties {
         float _outerCutOff = -1.0f,
         glm::vec3 _direction = glm::vec3(0.0f, 0.0f, -1.0f)
     ) : emission(_emission),
+        diffuseReflection(_diffuseReflection),
+        specularReflection(_specularReflection),
         shininess(_shininess),
         isLightSource(_isLightSource),
         constant(_constant),

@@ -57,8 +57,8 @@ class Renderer {
             InitializeShaders();
             LoadObjects();
             lightPos = glm::vec3(0.0f, 150.0f, 0.0f);
-            dirLight.ambient = glm::vec3(0.3f);
-            dirLight.diffuse = glm::vec3(0.1f);     
+            dirLight.ambient = glm::vec3(0.2f);
+            dirLight.diffuse = glm::vec3(0.02f);     
             dirLight.specular = glm::vec3(0.2f);   
             dirLight.direction = glm::normalize(glm::vec3(0.0f) - lightPos);
         }
@@ -87,7 +87,7 @@ class Renderer {
                     int index = key - GLFW_KEY_1;
                     if (index < objects.size()) {
                         selectedObjectIndex = index;
-                        std::cout << "Selected object " << index << std::endl;
+                        std::cout << "Selected object " << index << " " << objects[selectedObjectIndex]->name << std::endl;
                     }
                 }
 
@@ -106,27 +106,9 @@ class Renderer {
                     dirLight.ambient -= glm::vec3(0.1f);
                     dirLight.ambient = glm::clamp(dirLight.ambient, glm::vec3(0.0f), glm::vec3(1.0f));
                 }
-                if (key == GLFW_KEY_E) {  
-                    dirLight.diffuse -= glm::vec3(0.1f);
-                    dirLight.diffuse = glm::clamp(dirLight.diffuse, glm::vec3(0.0f), glm::vec3(1.0f));
-                }
-                if (key == GLFW_KEY_R) {  
-                    dirLight.diffuse += glm::vec3(0.1f);
-                    dirLight.diffuse = glm::clamp(dirLight.diffuse, glm::vec3(0.0f), glm::vec3(1.0f));
-                }
-
-                if (key == GLFW_KEY_T) {  
-                    dirLight.specular -= glm::vec3(0.1f);
-                    dirLight.specular = glm::clamp(dirLight.specular, glm::vec3(0.0f), glm::vec3(1.0f));
-                }
-                if (key == GLFW_KEY_Y) {  
-                    dirLight.specular += glm::vec3(0.1f);
-                    dirLight.specular = glm::clamp(dirLight.specular, glm::vec3(0.0f), glm::vec3(1.0f));
-                }
 
                 if (selectedObjectIndex >= 0 && selectedObjectIndex < objects.size()) {
                     Object* selectedObj = objects[selectedObjectIndex];
-
                     if (key == GLFW_KEY_Z) {
                         selectedObj->Rotate(rotationSpeed);
                     }
@@ -151,11 +133,64 @@ class Renderer {
                     if (key == GLFW_KEY_K) {
                         selectedObj->Move(0.0f, translationSpeed, 0.0f);
                     }
-                    if (key == GLFW_KEY_C) {
+                    if (key == GLFW_KEY_V) {
                         selectedObj->Scale(0.1);
                     }
-                    if (key == GLFW_KEY_V) {
+                    if (key == GLFW_KEY_B) {
                         selectedObj->Scale(-0.1);
+                    }
+
+                    if (key == GLFW_KEY_E) {  
+                        for (auto &mat : selectedObj->materials) {
+                            if (!mat.isLightSource) {
+                                mat.diffuseReflection += glm::vec3(0.1f);
+                                mat.diffuseReflection = glm::clamp(mat.diffuseReflection, glm::vec3(0.0f), glm::vec3(1.0f));
+                            }
+                        }
+                    }
+
+                    if (key == GLFW_KEY_R) {  
+                        for (auto &mat : selectedObj->materials) {
+                            if (!mat.isLightSource) {
+                                mat.diffuseReflection -= glm::vec3(0.1f);
+                                mat.diffuseReflection = glm::clamp(mat.diffuseReflection, glm::vec3(0.0f), glm::vec3(1.0f));
+                            }
+                        }
+                    }
+
+
+                    if (key == GLFW_KEY_E) {  
+                        for (auto &mat : selectedObj->materials) {
+                            if (!mat.isLightSource) {
+                                mat.diffuseReflection += glm::vec3(0.1f);
+                                mat.diffuseReflection = glm::clamp(mat.diffuseReflection, glm::vec3(0.0f), glm::vec3(1.0f));
+                            }
+                        }
+                    }
+                    if (key == GLFW_KEY_R) {  
+                        for (auto &mat : selectedObj->materials) {
+                            if (!mat.isLightSource) {
+                                mat.diffuseReflection -= glm::vec3(0.1f);
+                                mat.diffuseReflection = glm::clamp(mat.diffuseReflection, glm::vec3(0.0f), glm::vec3(1.0f));
+                            }
+                        }
+                    }
+
+                    if (key == GLFW_KEY_T) {  
+                        for (auto &mat : selectedObj->materials) {
+                            if (!mat.isLightSource) {
+                                mat.specularReflection += glm::vec3(0.1f);
+                                mat.specularReflection = glm::clamp(mat.specularReflection, glm::vec3(0.0f), glm::vec3(1.0f));
+                            }
+                        }
+                    }
+                    if (key == GLFW_KEY_Y) {  
+                        for (auto &mat : selectedObj->materials) {
+                            if (!mat.isLightSource) {
+                                mat.specularReflection -= glm::vec3(0.1f);
+                                mat.specularReflection = glm::clamp(mat.specularReflection, glm::vec3(0.0f), glm::vec3(1.0f));
+                            }
+                        }
                     }
                     if (key == GLFW_KEY_F) {
                         Object* selectedObj = objects[selectedObjectIndex];
@@ -242,7 +277,7 @@ class Renderer {
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
             glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-            window = glfwCreateWindow(width, height, "Malhas e Texturas", NULL, NULL);
+            window = glfwCreateWindow(width, height, "Iluminação", NULL, NULL);
             if (!window) {
                 glfwTerminate();
                 throw std::runtime_error("Failed to create GLFW window");
@@ -584,7 +619,7 @@ class Renderer {
             objects.push_back(new Object(shaderProgram, "models/small_lamp.obj", smallLampTextures,
                         smallLampProperties, 1.5f, 0.5f, -21.0f, 1.0f, 0.0f, 1));
             objects.push_back(new Object(shaderProgram, "models/giant.obj", giantTextures,
-                        giantProperties, -27.0f, 0.0f, -6.0f, 1.0f, 0.0f, 1));
+                        giantProperties, 80.0f, 0.0f, -20.0f, 1.0f, 0.0f, 1));
             objects.push_back(new Object(shaderProgram, "models/lamp.obj", lampTextures,
                         lampProperties, 70.0f, 0.0f, -10.0f, 5.0f, 0.0f, 1));
             objects.push_back(new Object(shaderProgram, "models/lamp.obj", lampTextures,
@@ -671,7 +706,7 @@ class Renderer {
                             light.quadratic = mat.quadratic;
                             light.ambient = glm::vec3(0.05f);
                             light.diffuse = glm::vec3(0.8f);
-                            light.specular = glm::vec3(0.8f);
+                            light.specular = glm::vec3(0.5f);
                             pointLights.push_back(light);
                         }
                     }
@@ -763,11 +798,6 @@ class Renderer {
                     obj->Rotate(0.001f);
 
                 obj->Draw(polygonal_mode);
-            }
-            if (selectedObjectIndex != -1) {
-                auto obj = objects[selectedObjectIndex];
-                std:: cout << obj->xPos << " " << obj-> yPos << " " <<  obj->zPos << std::endl;
-                std::cout << obj->angle << std::endl;
             }
 
             glfwSwapBuffers(window);
