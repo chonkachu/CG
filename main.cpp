@@ -216,15 +216,8 @@ bool foundEye = false;
 glm::vec3 eyeLeft(0.75865, 8.79846, 1.0f);
 glm::vec3 eyeCentroid(0.03f, 8.79846, 1.0f);
 glm::vec3 eyeDirection(0.0f);
-
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
-        polygonal_mode = !polygonal_mode;
-    }
-    if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-        showDebugLines = !showDebugLines;
-    }
-}
+glm::vec3 flashlightCentroid(-0.0432864, -0.05f, -0.274723);
+glm::vec3 flashlightFront(-0.0432864, -0.05f, -0.574723);
 
 class LightDirectionVisualizer {
 public:
@@ -256,8 +249,6 @@ public:
             lightPos.y + direction.y * 5.0f, 
             lightPos.z + direction.z * 5.0f
         };
-        std::cout << vertices[0] << " " << vertices[1] << " " << vertices[2] << std::endl;
-        std::cout << vertices[3] << " " << vertices[4] << " " << vertices[5] << std::endl;
         
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
@@ -290,9 +281,11 @@ private:
 
 class Renderer {
 public:
+    static Renderer* instance;
     Renderer(int width, int height)
         : width(width), height(height), camera(nullptr), lightVisualizer(nullptr)
     {
+        instance = this;
         InitializeGLFW();
         InitializeOpenGL();
         InitializeShaders();
@@ -308,7 +301,7 @@ public:
     }
 
     void Run() {
-        camera = new Camera(width, height, 120.771, 10.7901, 6.4414);
+        camera = new Camera(width, height, 0.0f, 2.0f, 0.0f);
         glfwSetCursorPos(window, width/2, height/2);
 
         while (!glfwWindowShouldClose(window)) {
@@ -319,6 +312,67 @@ public:
                 glfwSetWindowShouldClose(window, GL_TRUE);
         }
     }
+    void HandleKeyInput(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            // Object selection (keys 1-9)
+            if (key >= GLFW_KEY_1 && key <= GLFW_KEY_9) {
+                int index = key - GLFW_KEY_1;
+                if (index < objects.size()) {
+                    selectedObjectIndex = index;
+                    std::cout << "Selected object " << index << std::endl;
+                }
+            }
+
+            // Handle P and L keys as before
+            if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+                polygonal_mode = !polygonal_mode;
+            }
+            if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+                showDebugLines = !showDebugLines;
+            }
+
+            // Object manipulation (only if an object is selected)
+            if (selectedObjectIndex >= 0 && selectedObjectIndex < objects.size()) {
+                Object* selectedObj = objects[selectedObjectIndex];
+
+                // Rotation
+                if (key == GLFW_KEY_Z) {
+                    selectedObj->Rotate(rotationSpeed);
+                }
+
+                // Translation
+                if (key == GLFW_KEY_RIGHT) {
+                    selectedObj->Move(translationSpeed, 0.0f, 0.0f);
+                }
+                if (key == GLFW_KEY_LEFT) {
+                    selectedObj->Move(-translationSpeed, 0.0f, 0.0f);
+                }
+                if (key == GLFW_KEY_UP) {
+                    selectedObj->Move(0.0f, 0.0f, translationSpeed);
+                }
+                if (key == GLFW_KEY_DOWN) {
+                    selectedObj->Move(0.0f, 0.0f, -translationSpeed);
+                }
+                if (key == GLFW_KEY_J) {
+                    selectedObj->Move(0.0f, -translationSpeed, 0.0f);
+                }
+                if (key == GLFW_KEY_K) {
+                    selectedObj->Move(0.0f, translationSpeed, 0.0f);
+                }
+                if (key == GLFW_KEY_C) {
+                    selectedObj->Scale(0.1);
+                }
+                if (key == GLFW_KEY_V) {
+                    selectedObj->Scale(-0.1);
+                }
+            }
+        }
+    }
+    static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        if (instance) {
+            instance->HandleKeyInput(window, key, scancode, action, mods);
+        }
+    }
 
 private:
     int width, height;
@@ -326,6 +380,9 @@ private:
     GLuint shaderProgram;
     std::vector<Object*> objects;
     Camera* camera;
+    int selectedObjectIndex = -1;  // -1 means no object selected
+    const float rotationSpeed = 0.05f;
+    const float translationSpeed = 0.5f;
 
     LightDirectionVisualizer* lightVisualizer;
     glm::vec3 lightPos;  // Store light position
@@ -385,7 +442,7 @@ private:
         }
 
         glfwMakeContextCurrent(window);
-        glfwSetKeyCallback(window, key_callback);
+        glfwSetKeyCallback(window, Renderer::KeyCallback);
         glfwSetCursorPosCallback(window, Camera::MouseCallback);
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
@@ -444,6 +501,56 @@ private:
 
     void LoadObjects() {
         // House with regular materials (non-emissive)
+
+        // Night sky with subtle glow
+        std::vector<const char*> skyTextures = {
+            "textures/night.png",
+        };
+        std::vector<MaterialProperties> skyProperties = {
+            MaterialProperties(
+                    glm::vec3(0.1f),     // Very subtle emission
+                    1.0f,                // Not shiny
+                    false            // Is a light source
+                    )
+        };
+        objects.push_back(new Object(shaderProgram, "models/sphere.obj", skyTextures,
+                    skyProperties, 0.0f, 0.0f, 0.0f, 200.0f, 0.0f, 1));
+
+
+        std::vector<const char*> treeTextures = {
+            "textures/tree.jpg",
+        };
+        std::vector<MaterialProperties> treeProperties = {
+            MaterialProperties(
+                    glm::vec3(0.1f),     // Very subtle emission
+                    1.0f,                // Not shiny
+                    false                // Is a light source
+                    )
+        };
+        objects.push_back(new Object(shaderProgram, "models/tree.obj", treeTextures,
+                    treeProperties, 63.0f, 0.0f, -18.0f, 0.3f, 0.0f, 1));
+
+        // Grass (non-emissive, matte)
+        std::vector<const char*> grassTextures = {
+            "textures/grass.jpg",
+        };
+        std::vector<MaterialProperties> grassProperties = {
+            MaterialProperties(
+                    glm::vec3(0.0f),     // No emission
+                    2.0f,                // Very low shininess for matte look
+                    false                // Not a light source
+                    )
+        };
+        objects.push_back(new Object(shaderProgram, "models/grass.obj", grassTextures,
+                    grassProperties, 0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 1));
+
+        // Street lamps with emissive light bulbs
+        std::vector<const char*> lampTextures = {
+            "textures/street_lamp_black.png",
+            "textures/street_lamp_white.png",
+            "textures/street_lamp_grey.png",
+        };
+
         std::vector<const char*> houseTextures = {
             "textures/tramy-UVout.png",
             "textures/House-diff.png"
@@ -460,46 +567,10 @@ private:
                     false                // Not a light source
                     )
         };
+
         objects.push_back(new Object(shaderProgram, "models/casa.obj", houseTextures,
-                    houseProperties, 2.0f, 0.5f, -1.0f, 7.0f, 1));
+                    houseProperties, 2.0f, 0.5f, -1.0f, 5.0f, 0.0f, 1));
 
-        // Night sky with subtle glow
-        std::vector<const char*> skyTextures = {
-            "textures/night.png",
-        };
-        std::vector<MaterialProperties> skyProperties = {
-            MaterialProperties(
-                    glm::vec3(0.1f),     // Very subtle emission
-                    1.0f,                // Not shiny
-                    true,                // Is a light source
-                    1.0f,                // No distance falloff for sky
-                    0.0f, 
-                    0.0f
-                    )
-        };
-        objects.push_back(new Object(shaderProgram, "models/sphere.obj", skyTextures,
-                    skyProperties, 0.0f, 0.0f, 0.0f, 200.0f, 1));
-
-        // Grass (non-emissive, matte)
-        std::vector<const char*> grassTextures = {
-            "textures/grass.jpg",
-        };
-        std::vector<MaterialProperties> grassProperties = {
-            MaterialProperties(
-                    glm::vec3(0.0f),     // No emission
-                    2.0f,                // Very low shininess for matte look
-                    false                // Not a light source
-                    )
-        };
-        objects.push_back(new Object(shaderProgram, "models/grass.obj", grassTextures,
-                    grassProperties, 0.0f, 0.0f, 0.0f, 2.0f, 1));
-
-        // Street lamps with emissive light bulbs
-        std::vector<const char*> lampTextures = {
-            "textures/street_lamp_black.png",
-            "textures/street_lamp_white.png",
-            "textures/street_lamp_grey.png",
-        };
         std::vector<MaterialProperties> lampProperties = {
             MaterialProperties(  // Black metal parts
                     glm::vec3(0.0f),     // No emission
@@ -523,10 +594,10 @@ private:
 
         // Create the lamps
         objects.push_back(new Object(shaderProgram, "models/lamp.obj", lampTextures,
-                    lampProperties, 70.0f, 0.0f, -10.0f, 5.0f, 1));
+                    lampProperties, 70.0f, 0.0f, -10.0f, 5.0f, 0.0f, 1));
 
         objects.push_back(new Object(shaderProgram, "models/lamp.obj", lampTextures,
-                    lampProperties, 70.0f, 0.0f, 10.0f, 5.0f, 1));
+                    lampProperties, 70.0f, 0.0f, 10.0f, 5.0f, 0.0f, 1));
 
         std::vector<const char*> giantTextures = {
             "textures/laser_eyes.png",
@@ -557,8 +628,146 @@ private:
                     )
         };
         objects.push_back(new Object(shaderProgram, "models/giant.obj", giantTextures,
-                    giantProperties, 0.0f, 0.0f, 0.0f, 1.0f, 1));
+                    giantProperties, -27.0f, 0.0f, -6.0f, 1.0f, 0.0f, 1));
+
+
+        std::vector<const char*> flashlightTextures = {
+            "textures/red.png",
+            "textures/grey.jpg",
+            "textures/red.png"
+        };
+        std::vector<MaterialProperties> flashlightProperties = {
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.0f), 1.0f, false
+                    ),
+            MaterialProperties(  // Eyes - Green spotlight
+                    glm::vec3(0.8f, 0.8f, 0.8f)*2.0f ,
+                    1.0f,                          
+                    true,                          
+                    1.0f,                          
+                    0.09f,                         
+                    0.0f,                        
+                    glm::cos(glm::radians(25.f)),  
+                    glm::cos(glm::radians(30.f)),  
+                    glm::vec3(0.0f, 1.0f, 1.0f)    
+                    ),
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.0f), 1.0f, false
+                    )
+        };
+        objects.push_back(new Object(shaderProgram, "models/flashlight.obj", flashlightTextures,
+                    flashlightProperties, -9.7f, 3.67f, 14.5f, 1.0f, 4.6f, 1));
+
+        std::vector<const char*> smallLampTextures = {
+            "textures/brown.png",
+            "textures/orange.jpg"
+        };
+        std::vector<MaterialProperties> smallLampProperties = {
+            MaterialProperties(  // Black metal parts
+                    glm::vec3(0.0f),     // No emission
+                    32.0f,               // Metallic shininess
+                    false                // Not a light source
+                    ),
+            MaterialProperties(  // Light bulb
+                    glm::vec3(1.0f, 0.5f, 0.0f),  // Warm bright light
+                    1.0f,                // Not shiny
+                    true,                // Is a light source
+                    0.0f,                // Attenuation factors for ~20 unit radius
+                    0.1f,               // Medium distance falloff
+                    0.22f                // Quadratic falloff
+                    ),
+        };
+        objects.push_back(new Object(shaderProgram, "models/small_lamp.obj", smallLampTextures,
+                    smallLampProperties, 1.5f, 0.5f, -21.0f, 1.0f, 0.0f, 1));
+
+          std::vector<const char*> thinkerTextures = {
+              "textures/grey.jpg",
+              "textures/grey.jpg"
+          };
+          std::vector<MaterialProperties> thinkerProperties = {
+              MaterialProperties(  // Stone parts
+                      glm::vec3(0.02f),             // Slight emission for subtle glow
+                      256.0f,                       // Very high shininess
+                      false,
+                      1.0f,
+                      0.09f,
+                      0.032f
+                      ),
+              MaterialProperties(  // Stone parts
+                      glm::vec3(0.02f),             // Slight emission for subtle glow
+                      256.0f,                       // Very high shininess
+                      false,
+                      1.0f,
+                      0.09f,
+                      0.032f
+                      )
+          };
+          objects.push_back(new Object(shaderProgram, "models/thinker.obj", thinkerTextures,
+                      thinkerProperties, 4.5f, 0.6f, -21.0f, 0.7f, 9.4f, 1));
+
+          std::vector<const char*> victoryTextures = {
+              "textures/grey.jpg",
+          };
+
+          std::vector<MaterialProperties> victoryProperties = {
+              MaterialProperties(  // Stone parts
+                      glm::vec3(0.02f),             // Slight emission for subtle glow
+                      256.0f,                       // Very high shininess
+                      false,
+                      1.0f,
+                      0.09f,
+                      0.032f
+                      ),
+          };
+
+
+          objects.push_back(new Object(shaderProgram, "models/victory.obj", victoryTextures,
+                      victoryProperties, 13.0f, -0.75f, 14.0f, 0.5f, 3.7f, 1));
+
+          std::vector<const char*> nightstandTextures = {
+              "textures/stand.png",
+          };
+          std::vector<MaterialProperties> nightstandProperties = {
+              MaterialProperties(  // Stone parts
+                      glm::vec3(0.02f),             // Slight emission for subtle glow
+                      32.0f,                       // Very high shininess
+                      false,
+                      1.0f,
+                      0.09f,
+                      0.032f
+                      ),
+          };
+          objects.push_back(new Object(shaderProgram, "models/nightstand.obj", nightstandTextures,
+                      nightstandProperties, -10.5f, 1.5f, 13.5f, 0.4f, 0.0f, 1));
+  
+  
+        std::vector<const char*> bedTextures = {
+            "textures/bed.png",
+            "textures/bed_sheet.png",
+            "textures/pillows.png"
+        };
+        std::vector<MaterialProperties> bedProperties = {
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.01f),             // Slight emission for subtle glow
+                    1.0f,                       // Very high shininess
+                    false
+                    ),
+
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.01f),             // Slight emission for subtle glow
+                    1.0f,                       // Very high shininess
+                    false
+                    ),
+            MaterialProperties(  // Stone parts
+                    glm::vec3(0.01f),             // Slight emission for subtle glow
+                    1.0f,                       // Very high shininess
+                    false
+                    )
+        };
+        objects.push_back(new Object(shaderProgram, "models/bed.obj", bedTextures,
+                    bedProperties, -6.0f, 0.0f, -18.0f, 2.0f, 0.0f, 1));
     }
+
     void SetupLighting() {
         // Set up directional light
         // Light source position
@@ -605,10 +814,11 @@ private:
                             eyeDirection = glm::normalize(glm::cross(leftVector, upVector));
                             light.direction = eyeDirection;
                         }
-                        else {
-                            light.position = glm::vec3(model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-                            light.direction = glm::vec3(model * glm::vec4(mat.direction, 0.0f));
-                            std::cout << "entrei aqui " << obj->name << '\n';
+                        else if (obj->name == "models/flashlight.obj") {
+                            glm::vec3 flashlightCentroidNew = glm::vec3(model * glm::vec4(flashlightCentroid, 1.0f));
+                            glm::vec3 flashlightFrontNew = glm::vec3(model * glm::vec4(flashlightFront, 1.0f));
+                            light.position = flashlightCentroidNew;
+                            light.direction = flashlightFrontNew - flashlightCentroidNew;
                         }
                         light.color = mat.emission;
                         light.cutOff = mat.cutOff;
@@ -721,13 +931,17 @@ private:
             if (obj->name == "models/sphere.obj")
                 obj->Rotate(0.003f);
 
-            if (showDebugLines && obj->name == "models/giant.obj") {
-                lightVisualizer->Draw(view, projection, eyeCentroid, eyeDirection, shaderProgram);
-            }
             obj->Draw(polygonal_mode);
         }
         if (showDebugLines) {
             lightVisualizer->Draw(view, projection, lightPos, dirLight.direction, shaderProgram);
+            lightVisualizer->Draw(view, projection, eyeCentroid, eyeDirection, shaderProgram);
+            lightVisualizer->Draw(view, projection, flashlightCentroid, flashlightFront-flashlightCentroid, shaderProgram);
+        }
+        if (selectedObjectIndex != -1) {
+            auto obj = objects[selectedObjectIndex];
+            std:: cout << obj->xPos << " " << obj-> yPos << " " <<  obj->zPos << std::endl;
+            std::cout << obj->angle << std::endl;
         }
 
         glfwSwapBuffers(window);
@@ -745,6 +959,8 @@ private:
         glfwTerminate();
     }
 };
+
+Renderer* Renderer::instance = nullptr;
 
 int main() {
     try {

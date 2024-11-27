@@ -6,12 +6,12 @@
 
 Camera* Camera::instance = nullptr;
 
-bool checkSkyBounds(glm::vec3 pos, glm::vec3 delta) {
+inline static bool checkSkyBounds(glm::vec3 pos, glm::vec3 delta) {
     float abs = glm::length(pos+delta);
 
     return (abs < 198.0f);
 }
-bool checkFloorBounds(glm::vec3 pos, glm::vec3 delta) {
+inline static bool checkFloorBounds(glm::vec3 pos, glm::vec3 delta) {
     float y = pos.y+delta.y;
 
     return (y > 1.0f);
@@ -80,7 +80,7 @@ void Camera::ProcessKeyboard(GLFWwindow* window) {
         if (checkSkyBounds(position, delta) && checkFloorBounds(position, delta))
             position += delta;
     }
-std::cout << position.x << " " << position.y << " " << position.z << " " << std::endl;
+//std::cout << position.x << " " << position.y << " " << position.z << " " << std::endl;
 }
 
 void Camera::UpdateCameraVectors() {

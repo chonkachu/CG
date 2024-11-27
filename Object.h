@@ -8,6 +8,7 @@
 #include <string>
 #include <map>
 
+
 struct Vertex {
     glm::vec3 position;
     glm::vec2 texture_coord;
@@ -59,11 +60,12 @@ public:
            const std::vector<const char*>& texturePaths,
            const std::vector<MaterialProperties>& matProperties,
            float _xPos = 0.0f, float _yPos = 0.0f, float _zPos = 0.0f, 
-           float _scale = 1.0f, int axis = 1);
+           float _scale = 1.0f, float _angle = 0.0f, int axis = 1);
     ~Object();
     
+    float xPos, yPos, zPos, scale, angle;
     void Draw(bool mesh_active);
-    void Move(float dx, float dy);
+    void Move(float dx, float dy, float dz);
     void Scale(float factor);
     void Rotate(float angle);
     glm::mat4 GetModelMatrix();
@@ -73,7 +75,6 @@ private:
     std::vector<Vertex> vertices;
     std::vector<GLuint> textures;
     std::vector<std::pair<std::string, std::pair<size_t, size_t>>> materialGroups; // name, {start, count}
-    float xPos, yPos, zPos, scale, angle;
     int axis;
 
     bool LoadOBJ(const char* path);

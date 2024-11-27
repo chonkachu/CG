@@ -11,9 +11,9 @@
 Object::Object(GLuint shaderProgram, const char* objPath, 
                const std::vector<const char*>& texturePaths,
                const std::vector<MaterialProperties>& matProperties,
-               float _xPos, float _yPos, float _zPos, float _scale, int axis)
+               float _xPos, float _yPos, float _zPos, float _scale, float _angle, int axis)
     : shaderProgram(shaderProgram), xPos(_xPos), yPos(_yPos), zPos(_zPos),
-      scale(_scale), angle(0.0f), axis(axis), name(objPath), materials(matProperties) {
+      scale(_scale), angle(_angle), axis(axis), name(objPath), materials(matProperties) {
     
     if (!LoadOBJ(objPath)) {
         throw std::runtime_error("Failed to load OBJ file!");
@@ -218,13 +218,14 @@ void Object::Draw(bool mesh_active) {
     }
 }
 
-void Object::Move(float dx, float dy) {
+void Object::Move(float dx, float dy, float dz) {
     xPos += dx;
     yPos += dy;
+    zPos += dz;
 }
 
 void Object::Scale(float factor) {
-    scale *= factor;
+    scale -= factor;
 }
 
 void Object::Rotate(float angle_delta) {
