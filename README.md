@@ -1,5 +1,5 @@
 # Computer-Graphics
-SCC0650 Computer Graphics ICMC-USP Computer Science Bachelor's
+SCC0650 Computer Graphics
 
 Para rodar o programa (Ubuntu 22.04):
 1. Baixe dependências **sudo apt-get install libglfw3-dev libglm-dev mesa-utils libglu1-mesa-dev freeglut3-dev mesa-common-dev**
@@ -7,14 +7,21 @@ Para rodar o programa (Ubuntu 22.04):
 3. Após a compilação, mova **libGLEW.so, libGLEW.so.2.2, libGLEW.so.2.2.0** gerados na pasta lib/ para /usr/lib/
 4. Rode o Makefile e execute ./main
 
-Selecionando as teclas de 0..9 podemos selecionar algum dos objetos e utilizar transformações nele
-1. 0..1 -> Estrelas
-2. 2..4 -> Arbustos
-3. 5..7 -> Nuvens
-4. 8 -> Casa
-5. 9 -> Nave
+Comandos
+1. 1-5 Seleciona um dos modelos
+2. Z,C Rotação (eixo Y por padrão, precisa ter selecionado modelo)
+3. J,K Translação em Y (precisa ter selecionado modelo)
+4. W,A,S,D Movimentação da Camera 
+5. Arrow keys Translação em X e Z (precisa ter selecionado modelo)
+6. C, V Escala (precisa ter selecionado modelo)
+7. O,I,U Desliga, Aumenta, Diminui a luz ambiente respectivamente
+8. Y, T Aumenta e Diminui reflexão especular
+9. R, E Aumenta e Diminui reflexão difusa 
+10. F Liga a fonte de luz de um modelo (veja abaixo)
 
-Comandos de transformação:
-1. Z,C Rotação (Z para 2D, Y para 3D)
-2. J,K Escala
-3. W,A,S,D translação
+Ordem dos modelos com luz (teclas 1-5)
+1. Lanterna
+2. Lampada
+3. Gigante
+4. Lampada de Rua 1
+5. Lampada de Rua 2

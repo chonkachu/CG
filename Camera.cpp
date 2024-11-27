@@ -6,6 +6,7 @@
 
 Camera* Camera::instance = nullptr;
 
+// Funções auxiliares que checam se a camera está dentro do limite da cena
 inline static bool checkSkyBounds(glm::vec3 pos, glm::vec3 delta) {
     float abs = glm::length(pos+delta);
 
@@ -80,7 +81,6 @@ void Camera::ProcessKeyboard(GLFWwindow* window) {
         if (checkSkyBounds(position, delta) && checkFloorBounds(position, delta))
             position += delta;
     }
-//std::cout << position.x << " " << position.y << " " << position.z << " " << std::endl;
 }
 
 void Camera::UpdateCameraVectors() {

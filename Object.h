@@ -3,6 +3,7 @@
 #define OBJ_H
 
 #include <GL/glew.h>
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
@@ -15,11 +16,11 @@ struct Vertex {
     glm::vec3 normal;
 };
 
-
-// In Object.h
 struct MaterialProperties {
     glm::vec3 emission{0.0f};
     float shininess{32.0f};
+    glm::vec3 diffuseReflection{1.0f};
+    glm::vec3 specularReflection{1.0f};
     bool isLightSource{false};
     float constant{1.0f};
     float linear{0.09f};
@@ -27,9 +28,12 @@ struct MaterialProperties {
     float cutOff{-1.0f};         // Default to -1 for point lights
     float outerCutOff{-1.0f};    // Default to -1 for point lights
     glm::vec3 direction{0.0f, 0.0f, -1.0f};
+    bool isActive{false};
 
     MaterialProperties(
         glm::vec3 _emission = glm::vec3(0.0f),
+        glm::vec3 diffuseReflection = glm::vec3(1.0f),
+        glm::vec3 specularReflection = glm::vec3(1.0f),
         float _shininess = 32.0f,
         bool _isLightSource = false,
         float _constant = 1.0f,
@@ -46,7 +50,8 @@ struct MaterialProperties {
         quadratic(_quadratic),
         cutOff(_cutOff),
         outerCutOff(_outerCutOff),
-        direction(_direction)
+        direction(_direction),
+        isActive(false)
     {}
 };
 
@@ -69,12 +74,13 @@ public:
     void Scale(float factor);
     void Rotate(float angle);
     glm::mat4 GetModelMatrix();
+    void ToggleLights();
 private:
     GLuint vao{0}, vbo{0};
     GLuint shaderProgram;
     std::vector<Vertex> vertices;
     std::vector<GLuint> textures;
-    std::vector<std::pair<std::string, std::pair<size_t, size_t>>> materialGroups; // name, {start, count}
+    std::vector<std::pair<std::string, std::pair<size_t, size_t>>> materialGroups; 
     int axis;
 
     bool LoadOBJ(const char* path);

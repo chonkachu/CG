@@ -1,4 +1,4 @@
-// Object.cpp
+
 #include "Object.h"
 #include <fstream>
 #include <sstream>
@@ -29,29 +29,22 @@ Object::Object(GLuint shaderProgram, const char* objPath,
     model = glm::rotate(model, angle, rotation_axis);
     model = glm::scale(model, glm::vec3(scale));
 
-    // Generate and bind VAO
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // Generate and setup VBO
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-    // Set up vertex attributes
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 
-    // Texture coordinate attribute
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture_coord));
 
-    // Normal attribute
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 
-
-    // Load textures
     textures.resize(texturePaths.size());
     for (size_t i = 0; i < texturePaths.size(); i++) {
         if (!LoadTexture(texturePaths[i], textures[i])) {
@@ -60,6 +53,7 @@ Object::Object(GLuint shaderProgram, const char* objPath,
     }
 }
 
+// Parser de .obj, se há faces que utilizam textura precisa de um "usemtl" antes da definição delas 
 bool Object::LoadOBJ(const char* path) {
     std::vector<glm::vec3> temp_vertices;
     std::vector<glm::vec2> temp_texcoords;
@@ -195,7 +189,11 @@ void Object::Draw(bool mesh_active) {
         GLint cutOffLoc = glGetUniformLocation(shaderProgram, "material.cutOff");
         GLint outerCutOffLoc = glGetUniformLocation(shaderProgram, "material.outerCutOff");
         GLint directionLoc = glGetUniformLocation(shaderProgram, "material.direction");
+        GLint isActiveLoc = glGetUniformLocation(shaderProgram, "material.isActive");
+        GLint diffuseReflectionLoc = glGetUniformLocation(shaderProgram, "material.diffuseReflection");
+        GLint specularReflectionLoc = glGetUniformLocation(shaderProgram, "material.specularReflection");
 
+        // esses são ignorados no shader caso não seja fonte de luz
         const auto& mat = materials[i];
         glUniform3fv(emissionLoc, 1, glm::value_ptr(mat.emission));
         glUniform1f(shininessLoc, mat.shininess);
@@ -206,12 +204,16 @@ void Object::Draw(bool mesh_active) {
         glUniform1f(cutOffLoc, mat.cutOff);
         glUniform1f(outerCutOffLoc, mat.outerCutOff);
         glUniform3fv(directionLoc, 1, glm::value_ptr(mat.direction));
+        glUniform1i(isActiveLoc, mat.isActive);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[i]);
 
         GLint loc_texture = glGetUniformLocation(shaderProgram, "material.diffuse");
         glUniform1i(loc_texture, 0);
+
+        glUniform3fv(diffuseReflectionLoc, 1, glm::value_ptr(mat.diffuseReflection));
+        glUniform3fv(specularReflectionLoc, 1, glm::value_ptr(mat.specularReflection));
 
         const auto& group = materialGroups[i];
         glDrawArrays(GL_TRIANGLES, group.second.first, group.second.second);
@@ -230,6 +232,14 @@ void Object::Scale(float factor) {
 
 void Object::Rotate(float angle_delta) {
     angle += angle_delta;
+}
+
+void Object::ToggleLights() {
+    for (auto& mat : materials) {
+        if (mat.isLightSource) {
+            mat.isActive = !mat.isActive;
+        }
+    }
 }
 
 glm::mat4 Object::GetModelMatrix() {
